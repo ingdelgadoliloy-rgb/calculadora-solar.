@@ -41,7 +41,7 @@ Funciona en cualquier hosting que sirva archivos estáticos por HTTPS.
 
 ### Opción 1: GitHub Actions (sin instalar nada)
 1. Sube el proyecto a GitHub (como en la opción A).
-2. El flujo **APK Android** corre solo en cada cambio. Ve a *Actions →* la ejecución más reciente *→ Artifacts* y descarga `calculadora-solar-apk`.
+2. El flujo **APK Android** corre solo en cada cambio y publica el APK en *Releases → «Última versión»*. También queda en *Actions → Artifacts* si hay cuota disponible.
 3. Pasa `calculadora-solar-debug.apk` al teléfono e instálalo. Android pedirá permitir apps de origen desconocido.
 4. Para publicar una versión con número, crea una etiqueta (`git tag v1.0.0 && git push --tags`). El APK quedará en *Releases*.
 
