@@ -1,0 +1,24 @@
+{
+  "name": "calculadora-solar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calculadora fotovoltaica para tu casa: paneles, baterías, costos y retorno. Web (PWA) y Android.",
+  "author": "Hector David Agudelo Arias",
+  "scripts": {
+    "serve": "npx --yes http-server www -p 8080 -c-1",
+    "android:init": "npx cap add android && npx capacitor-assets generate --android && node scripts/android-permissions.js && npx cap sync android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "apk": "cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/share": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.0.0"
+  }
+}

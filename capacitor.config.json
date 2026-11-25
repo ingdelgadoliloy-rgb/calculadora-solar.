@@ -1,0 +1,16 @@
+{
+  "appId": "co.calculadorasolar.app",
+  "appName": "Calculadora solar",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#102c38"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "backgroundColor": "#102c38"
+    }
+  }
+}

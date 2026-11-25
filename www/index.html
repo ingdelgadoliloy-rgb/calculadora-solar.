@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Calculadora solar</title>
+<meta name="description" content="Estima paneles solares, baterías, costos y retorno de la inversión para tu casa en Colombia.">
+<meta name="theme-color" content="#102c38">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+/*
+VOICE: herramienta de trabajo honesta y clara, como una ficha técnica bien hecha; "no te dejes engañar".
+IDEA: la hoja de cálculo de un instalador vuelta app de bolsillo: el resultado grande arriba, los supuestos visibles.
+PICTURE: la cifra de paneles enorme sobre el panel amarillo, con la generación mes a mes como gráfica de barras.
+COLOUR and TYPE: identidad original del autor: azul noche #102c38, azul petróleo #1c6278, sol #f3bd58, papel #f3f2eb; Georgia para cifras y títulos, sistema para el texto.
+LAYOUT: pestañas (abajo en el móvil); en cada pestaña datos a la izquierda y resultado fijo a la derecha; en el móvil, resultado primero.
+*/
+:root{color-scheme:light dark;
+  --bg:light-dark(#f3f2eb,#0b1b22);--card:light-dark(#ffffff,#122833);--ink:light-dark(#142833,#e6eef0);--muted:light-dark(#47606a,#9fb4bb);
+  --navy:#102c38;--blue:light-dark(#1c6278,#5fb0c7);--line:light-dark(#d9e0da,#24414d);--soft:light-dark(#edf5f6,#183441);--soft2:light-dark(#f2f6f4,#163039);
+  --sun:#f3bd58;--sunsoft:light-dark(#ffedc5,#3a3018);--btn:light-dark(#0d5469,#2f8aa5);--err:light-dark(#842726,#ff9a95);--good:light-dark(#1f6b3a,#7fd39b);
+  --field:light-dark(#ffffff,#0e2029);--fieldline:light-dark(#82999b,#45646f);
+  font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:120px}
+body{margin:0;background:var(--bg);color:var(--ink);overflow-x:clip;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+[hidden]{display:none!important}
+a{color:var(--blue);text-underline-offset:.18em}
+:focus-visible{outline:3px solid #c77800;outline-offset:2px}
+h1,h2,h3{line-height:1.12;margin:0 0 10px;text-wrap:balance}
+h2{font:700 clamp(1.5rem,2.6vw,1.9rem)/1.12 Georgia,serif}
+h3{font-size:1.08rem}
+p{margin:0 0 12px}
+.small,.hint{color:var(--muted);font-size:.875rem}
+.hint{display:block;margin-top:5px}
+/* barra superior */
+.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
+.top-in{max-width:1240px;margin:auto;display:flex;align-items:center;gap:12px;min-height:58px}
+.top img{width:36px;height:36px;border-radius:9px;flex:none}
+.brand{flex:1}
+.brand b{display:block;font:700 1.15rem/1.1 Georgia,serif}
+.brand span{display:block;font-size:.78rem;color:#cfe2e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .save{background:transparent;color:#fff;border-color:#4f7b88;min-height:40px;font-size:.88rem}
+.tabs{display:flex;gap:4px;max-width:1240px;margin:auto}
+.tabs a{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;color:#cfe2e6;text-decoration:none;font-weight:650;padding:10px 6px 12px;border-bottom:3px solid transparent;font-size:.95rem}
+.tabs a[aria-current=page]{color:#fff;border-color:var(--sun)}
+.tabs svg{width:20px;height:20px;flex:none}
+@media(max-width:720px){
+  .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--navy);padding:4px 6px calc(4px + env(safe-area-inset-bottom));border-top:1px solid #24485a;z-index:30}
+  .tabs a{flex-direction:column;gap:2px;font-size:.72rem;padding:7px 2px;border-bottom:0;border-top:3px solid transparent;border-radius:0}
+  .tabs a[aria-current=page]{border-top-color:var(--sun);background:#163a49}
+}
+@media(min-width:721px){body{padding-bottom:0}}
+main{max-width:1240px;margin:auto;padding:18px max(16px,env(safe-area-inset-left)) 30px}
+.intro{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin:2px 0 14px}
+.intro h1{font:700 clamp(1.6rem,3.4vw,2.4rem)/1.08 Georgia,serif;margin:0}
+.intro p{margin:0;color:var(--muted)}
+.lead{color:#a86400;font-weight:700;font-size:.9rem;margin:0}
+@media(prefers-color-scheme:dark){.lead{color:var(--sun)}}
+:root[data-theme=dark] .lead{color:var(--sun)}:root[data-theme=light] .lead{color:#a86400}
+.ws{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:18px;align-items:start}
+.ws>.result{position:sticky;top:124px}
+@media(max-width:900px){.ws{grid-template-columns:minmax(0,1fr)}.ws>.result{position:static;order:-1}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+@media(max-width:560px){.card{padding:15px;border-radius:14px}main{padding-top:12px}}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.field{margin:0 0 13px}
+label,legend{display:block;font-weight:700;margin-bottom:5px;font-size:.95rem}
+fieldset{border:0;padding:0;margin:0 0 14px}
+input,select,textarea,button{font:inherit;font-size:16px}
+input,select,textarea{width:100%;min-height:44px;border:1px solid var(--fieldline);border-radius:9px;padding:8px 10px;color:var(--ink);background:var(--field)}
+textarea{min-height:76px;resize:vertical}
+input[type=checkbox]{width:22px;min-height:22px;height:22px;accent-color:var(--btn);flex:none;margin:0}
+input[type=file]{font-size:.85rem;padding:9px}
+[aria-invalid=true]{border-color:var(--err);box-shadow:0 0 0 2px color-mix(in srgb,var(--err) 25%,transparent)}
+.check{display:flex;gap:10px;align-items:center;font-weight:650;margin:0 0 12px}
+button,.btn{cursor:pointer;border-radius:9px;border:1px solid var(--fieldline);padding:8px 14px;min-height:44px;font-weight:700;background:var(--card);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;text-align:center}
+button:disabled{opacity:.5;cursor:default}
+button[aria-pressed=true]{background:var(--soft);border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.primary{background:var(--btn);border-color:var(--btn);color:#fff}
+.wa{background:#1f8a4c;border-color:#1f8a4c;color:#fff}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+details{margin:0 0 14px}
+summary{font-weight:700;cursor:pointer;min-height:32px}
+details>.row,details>.hint,details>p{margin-top:9px}
+.box{background:var(--soft);padding:13px 13px 1px;border-radius:10px;margin:0 0 14px}
+.error{color:var(--err);font-weight:650;margin:8px 0}
+.note{font-size:.85rem;color:var(--muted);min-height:20px;margin-bottom:10px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.actions>*{flex:1 1 150px}
+/* resultado */
+.hero-res{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;align-items:end;background:var(--sunsoft);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.hero-res strong{font:700 clamp(3rem,9vw,4.6rem)/.95 Georgia,serif;letter-spacing:-.02em;grid-row:span 2}
+.hero-res .u{font-weight:700;font-size:1.05rem}
+.hero-res .s{color:var(--muted);font-size:.85rem}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.tile{padding:11px 12px;border-radius:10px;background:var(--soft)}
+.tile strong{display:block;font:700 clamp(1.35rem,3.2vw,1.9rem)/1.05 Georgia,serif;white-space:nowrap;margin-bottom:3px}
+.tile span{display:block;font-size:.8rem;font-weight:650;color:var(--muted)}
+.tile.hi{background:var(--sunsoft)}
+.chart{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:3px}
+.bars{display:flex;align-items:flex-end;justify-content:center;height:110px;gap:1px;border-bottom:1px solid var(--fieldline)}
+.bar{width:min(13px,45%);border-radius:3px 3px 0 0;background:var(--blue)}
+.bar.t{background:#d9a545}
+.mo{text-align:center;font-size:.7rem;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 15px;font-size:.8rem;color:var(--muted);margin:9px 0 10px}
+.sw{display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:2px;background:var(--blue)}
+.sw.t{background:#d9a545}
+table{width:100%;border-collapse:collapse;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:5px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+.scroll{overflow-x:auto}
+.jump{display:none;font-size:.9rem;font-weight:650;margin:-4px 0 10px}
+@media(max-width:900px){.jump{display:inline-block}}
+.method{background:var(--soft2);border-radius:10px;padding:12px 13px;margin-top:12px}
+.method p{margin:6px 0 0}
+.fig{position:relative;height:220px;margin:6px 0 4px}
+.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.load-card{background:var(--soft2);border:1px solid var(--line);border-radius:10px;padding:11px;margin-bottom:8px}
+.load-card label{font-size:.82rem}
+.load-head{display:flex;gap:8px;margin-bottom:8px}
+.load-head button{flex:none;min-height:44px;padding:6px 10px}
+.lf{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:480px){.lf{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.plist{list-style:none;margin:0 0 12px;padding:0}
+.plist li{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.plist .pi{flex:1}
+.plist b{display:block}
+.plist span{font-size:.82rem;color:var(--muted)}
+.plist button{min-height:40px;padding:6px 10px;font-size:.88rem}
+.empty{color:var(--muted);font-size:.9rem;padding:8px 0 14px}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;font-weight:650;z-index:50;max-width:calc(100% - 32px);box-shadow:0 6px 24px #0005}
+@media(min-width:721px){.toast{bottom:24px}}
+.dialog{position:fixed;inset:0;background:#0008;display:grid;place-items:center;z-index:60;padding:16px}
+.dialog .card{max-width:420px;width:100%}
+.view{animation:in .18s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+@media(prefers-reduced-motion:reduce){.view{animation:none}}
+footer{max-width:1240px;margin:auto;padding:4px max(16px,env(safe-area-inset-left)) 26px}
+footer p{margin:0 0 6px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <img src="icons/icon.svg" alt="" width="36" height="36">
+    <div class="brand"><b>Calculadora solar</b><span id="project-label">Proyecto sin guardar</span></div>
+    <button type="button" class="save" id="quick-save">Guardar</button>
+  </div>
+  <nav class="tabs" aria-label="Secciones">
+    <a href="#paneles" data-view="paneles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15 7 5h13l-3 10z"/><path d="M5.5 10h13M10.5 5l-2 10M15.5 5l-2 10M10 19h6M13 15v4"/></svg>Paneles</a>
+    <a href="#baterias" data-view="baterias"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10.5v3M7 10v4M10 10v4"/></svg>Baterías</a>
+    <a href="#costos" data-view="costos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Costos</a>
+    <a href="#informe" data-view="informe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Informe</a>
+  </nav>
+</header>
+
+<main>
+<!-- ===================== PANELES ===================== -->
+<section class="view" id="view-paneles" data-v="paneles">
+  <div class="intro">
+    <p class="lead">No te dejes engañar</p>
+    <h1>¿Cuántos paneles necesita tu casa?</h1>
+    <p>Usa tu factura de luz para estimarlo antes de aceptar una cotización. Sistemas conectados a la red.</p>
+  </div>
+  <div class="ws">
+    <form class="card" id="f-panels" novalidate>
+      <h2>Datos de tu casa</h2>
+      <div class="row">
+        <div class="field"><label for="consumption">Consumo mensual (kWh)</label><input id="consumption" data-k inputmode="decimal" value="300"></div>
+        <div class="field"><label for="watts">Potencia por panel (Wp)</label><input id="watts" data-k inputmode="decimal" value="550"></div>
+      </div>
+      <details>
+        <summary>¿Qué consumo y qué potencia pongo?</summary>
+        <p class="hint">Consumo: los kWh de tu factura. Si cubre dos meses, divide entre dos. Para una estimación conservadora usa el mes de mayor consumo habitual; para igualar tu consumo anual, el promedio.</p>
+        <p class="hint">Potencia: el <b>Pmax</b> bajo STC de la ficha técnica del panel. Si dice «Pmax 450 W», escribe 450. Los 550 Wp son un ejemplo. Verifica con el instalador cuántos caben en tu techo.</p>
+      </details>
+      <fieldset>
+        <legend>Meta de generación</legend>
+        <div class="choices" id="coverage">
+          <button type="button" value="50" aria-pressed="false">50 %</button>
+          <button type="button" value="75" aria-pressed="false">75 %</button>
+          <button type="button" value="100" aria-pressed="true">100 %</button>
+        </div>
+        <span class="hint">Meta anual = consumo × 12 × porcentaje elegido.</span>
+      </fieldset>
+      <div class="field">
+        <label for="resource-mode">Datos solares</label>
+        <select id="resource-mode" data-k>
+          <option value="city">Municipio de Colombia</option>
+          <option value="manual">Horas solares pico (manual)</option>
+          <option value="pvgis">Mi ubicación exacta (PVGIS)</option>
+        </select>
+      </div>
+      <div class="box" id="city-box">
+        <div class="field"><label for="municipality">Municipio</label><select id="municipality" data-k></select></div>
+        <p class="small" id="city-info" aria-live="polite"></p>
+        <p><button type="button" id="geo-city">Elegir el más cercano a mí</button></p>
+      </div>
+      <div class="box" id="manual-box" hidden>
+        <div class="field"><label for="sun-hours">Horas solares pico al día</label><input id="sun-hours" data-k inputmode="decimal" value="4"></div>
+        <p class="small">El valor de 4 horas es ilustrativo. Usa la irradiación diaria del lugar si la conoces.</p>
+      </div>
+      <div class="box" id="pvgis-box" hidden>
+        <div class="row">
+          <div class="field"><label for="lat">Latitud</label><input id="lat" data-k inputmode="decimal" placeholder="Ej. 4,71"></div>
+          <div class="field"><label for="lon">Longitud</label><input id="lon" data-k inputmode="decimal" placeholder="Ej. −74,15"></div>
+        </div>
+        <div class="actions">
+          <button type="button" id="geo-pvgis">Usar mi ubicación</button>
+          <button type="button" class="primary" id="pvgis-fetch">Traer datos de PVGIS</button>
+        </div>
+        <p class="small" id="pvgis-state" aria-live="polite">Sistema fijo de 1 kWp, ángulos óptimos y 14 % de pérdidas.</p>
+        <p class="small"><a id="pvgis-link" href="https://re.jrc.ec.europa.eu/pvg_tools/en/" target="_blank" rel="noopener noreferrer">Descargar el JSON de PVGIS</a> · <a href="https://re.jrc.ec.europa.eu/pvg_tools/en/" target="_blank" rel="noopener noreferrer">Configurar mi techo en PVGIS</a></p>
+        <div class="field"><label for="pvgis-file">O importa el archivo JSON de PVGIS 5.3</label><input id="pvgis-file" type="file" accept=".json,application/json"></div>
+      </div>
+      <div class="field" id="loss-field">
+        <label for="losses">Pérdidas del sistema (%)</label>
+        <input id="losses" data-k inputmode="decimal" value="14">
+        <span class="hint">14 % es la referencia de PVGIS para cables, inversor, suciedad y envejecimiento. El modo por municipio usa irradiación horizontal y no modela inclinación, temperatura ni sombras.</span>
+      </div>
+      <details id="quote-details">
+        <summary>Comparar con una cotización</summary>
+        <div class="row">
+          <div class="field"><label for="quote-panels">Paneles cotizados</label><input id="quote-panels" data-k inputmode="numeric" placeholder="Ej. 6"></div>
+          <div class="field"><label for="quote-watts">Wp por panel</label><input id="quote-watts" data-k inputmode="decimal" placeholder="Ej. 550"></div>
+        </div>
+        <div class="field"><label for="quote-price">Precio cotizado (COP, opcional)</label><input id="quote-price" data-k inputmode="numeric" placeholder="Ej. 12.000.000"></div>
+        <p class="small">Se aplican los mismos datos solares a las dos opciones.</p>
+      </details>
+      <p class="error" id="p-error" role="alert" hidden></p>
+    </form>
+
+    <section class="card result" aria-labelledby="p-title">
+      <h2 id="p-title">Tu estimación</h2>
+      <a class="jump" href="#f-panels" data-jump="f-panels">Ajustar los datos ↓</a>
+      <p class="note" id="p-note" role="status"></p>
+      <div class="hero-res"><strong id="p-count">—</strong><span class="u">paneles</span><span class="s" id="p-panel-desc"></span></div>
+      <div class="tiles">
+        <div class="tile"><strong id="p-kwp">—</strong><span>kWp instalados</span></div>
+        <div class="tile"><strong id="p-annual">—</strong><span>kWh/año estimados</span></div>
+        <div class="tile"><strong id="p-cover">—</strong><span>del consumo anual</span></div>
+      </div>
+      <p id="p-quote" hidden></p>
+      <div id="p-monthly" hidden>
+        <h3>Generación mes a mes</h3>
+        <div class="chart" id="p-chart" aria-hidden="true"></div>
+        <div class="legend"><span><i class="sw"></i>Generación estimada</span><span><i class="sw t"></i>Meta mensual</span></div>
+        <details><summary>Ver valores mensuales (kWh)</summary>
+          <table><thead><tr><th>Mes</th><th>Generación</th><th>Meta</th></tr></thead><tbody id="p-table"></tbody></table>
+        </details>
+      </div>
+      <div class="method"><h3>Cómo se calculó</h3><p class="small" id="p-method"></p></div>
+      <p class="hint">Sirve para comparar cotizaciones. El ahorro real depende del horario de consumo y de cómo se liquiden los excedentes. La visita técnica verifica techo, sombras y equipos.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ===================== BATERÍAS ===================== -->
+<section class="view" id="view-baterias" data-v="baterias" hidden>
+  <div class="intro"><h1>Respaldo y baterías</h1><p>Para cortes de luz o para una casa sin red.</p></div>
+  <div class="ws">
+    <form class="card" id="f-battery" novalidate>
+      <div class="field"><label for="battery-mode">Tipo de sistema</label><select id="battery-mode" data-k><option value="backup">Respaldo para cortes de luz</option><option value="offgrid">Sistema autónomo sin red</option></select></div>
+      <div class="field"><label for="load-mode">Cómo ingresar el consumo</label><select id="load-mode" data-k><option value="manual">Ya conozco mis kWh</option><option value="list">Estimar con una lista de equipos</option></select></div>
+      <div class="row" id="manual-load">
+        <div class="field"><label for="load-day">Consumo de día (kWh/día)</label><input id="load-day" data-k inputmode="decimal" value="4"></div>
+        <div class="field"><label for="load-night">Consumo de noche (kWh/día)</label><input id="load-night" data-k inputmode="decimal" value="2"></div>
+      </div>
+      <div id="equipment-load" hidden>
+        <h3>Equipos que quieres alimentar</h3>
+        <p class="hint">Reemplaza los equipos del ejemplo. Si conoces los vatios de la placa, escríbelos. En la nevera usa las horas efectivas del compresor.</p>
+        <div id="eq-rows"></div>
+        <button type="button" id="eq-add">Añadir equipo</button>
+        <p class="hint" id="eq-totals" aria-live="polite"></p>
+      </div>
+      <div class="row">
+        <div class="field"><label for="autonomy">Días de respaldo</label><input id="autonomy" data-k inputmode="decimal" value="1"></div>
+        <div class="field"><label for="load-peak">Potencia simultánea (kW)</label><input id="load-peak" data-k inputmode="decimal" value="1,2"></div>
+      </div>
+      <p class="hint">Suma los kW de los equipos que pueden encenderse a la vez. Para un corte de pocas horas, anota solo el consumo de ese horario y usa un día.</p>
+      <details>
+        <summary>Supuestos de la batería</summary>
+        <div class="row">
+          <div class="field"><label for="depth">Descarga utilizable (%)</label><input id="depth" data-k inputmode="decimal" value="80"></div>
+          <div class="field"><label for="discharge-eff">Eficiencia de descarga a CA (%)</label><input id="discharge-eff" data-k inputmode="decimal" value="95"></div>
+        </div>
+        <div class="field" id="trip-field" hidden><label for="trip-eff">Eficiencia del ciclo completo (%)</label><input id="trip-eff" data-k inputmode="decimal" value="85"></div>
+        <p class="hint">Valores de ejemplo. Usa la ficha de la batería y del inversor.</p>
+      </details>
+      <p class="error" id="b-error" role="alert" hidden></p>
+    </form>
+    <section class="card result" aria-labelledby="b-title">
+      <h2 id="b-title">Estimación de respaldo</h2>
+      <a class="jump" href="#f-battery" data-jump="f-battery">Ajustar los datos ↓</a>
+      <div class="hero-res"><strong id="b-nominal">—</strong><span class="u">kWh nominales de batería</span><span class="s" id="b-delivered"></span></div>
+      <div class="tiles">
+        <div class="tile"><strong id="b-usable">—</strong><span>kWh útiles</span></div>
+        <div class="tile"><strong id="b-inverter">—</strong><span>kW de inversor continuos (mínimo)</span></div>
+      </div>
+      <div class="method" id="og-result" hidden><h3 id="og-panels"></h3><p class="small" id="og-detail"></p></div>
+      <p class="hint" id="og-notice" hidden></p>
+      <p class="hint">Supone que la batería empieza cargada. Verifica con el instalador los picos de arranque, la potencia de descarga de la batería y la compatibilidad del inversor.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ===================== COSTOS ===================== -->
+<section class="view" id="view-costos" data-v="costos" hidden>
+  <div class="intro"><h1>Costos y retorno de la inversión</h1><p>¿En cuántos años se paga el sistema?</p></div>
+  <div class="ws">
+    <form class="card" id="f-costs" novalidate>
+      <p class="small" id="c-base"></p>
+      <div class="row">
+        <div class="field"><label for="tariff">Tarifa (COP por kWh)</label><input id="tariff" data-k inputmode="decimal" value="850"></div>
+        <div class="field"><label for="cost-kwp">Costo instalado (COP por kWp)</label><input id="cost-kwp" data-k inputmode="decimal" value="3.800.000"></div>
+      </div>
+      <p class="hint" style="margin-top:-6px;margin-bottom:12px">Valores de ejemplo: usa el valor unitario de tu factura y el de tu cotización. Si escribiste un precio en «Comparar con una cotización», puedes usarlo:</p>
+      <label class="check"><input type="checkbox" id="use-quote" data-k> Usar el precio de la cotización como inversión</label>
+      <div class="row">
+        <div class="field"><label for="self-use">Autoconsumo directo (%)</label><input id="self-use" data-k inputmode="decimal" value="60"></div>
+        <div class="field"><label for="export-value">Valor de los excedentes (% de la tarifa)</label><input id="export-value" data-k inputmode="decimal" value="70"></div>
+      </div>
+      <p class="hint" style="margin-top:-6px;margin-bottom:12px">Autoconsumo: parte de la generación que usas en el momento. El resto se entrega a la red y se reconoce según tu operador y la regulación vigente; pregunta cómo te liquidarán los excedentes.</p>
+      <details>
+        <summary>Más supuestos</summary>
+        <div class="row">
+          <div class="field"><label for="tariff-growth">Alza anual de la tarifa (%)</label><input id="tariff-growth" data-k inputmode="decimal" value="4"></div>
+          <div class="field"><label for="degradation">Pérdida anual de los paneles (%)</label><input id="degradation" data-k inputmode="decimal" value="0,5"></div>
+          <div class="field"><label for="om">Mantenimiento anual (% de la inversión)</label><input id="om" data-k inputmode="decimal" value="1"></div>
+          <div class="field"><label for="years">Años de análisis</label><input id="years" data-k inputmode="numeric" value="25"></div>
+        </div>
+      </details>
+      <label class="check"><input type="checkbox" id="include-battery" data-k> Incluir la batería de la pestaña Baterías</label>
+      <div class="field" id="bat-cost-field" hidden><label for="battery-cost">Costo de batería (COP por kWh nominal)</label><input id="battery-cost" data-k inputmode="decimal" value="2.200.000"></div>
+      <p class="error" id="c-error" role="alert" hidden></p>
+    </form>
+    <section class="card result" aria-labelledby="c-title">
+      <h2 id="c-title">Retorno estimado</h2>
+      <a class="jump" href="#f-costs" data-jump="f-costs">Ajustar los datos ↓</a>
+      <div class="hero-res"><strong id="c-payback">—</strong><span class="u">años para recuperar la inversión</span><span class="s" id="c-payback-s"></span></div>
+      <div class="tiles">
+        <div class="tile"><strong id="c-invest">—</strong><span>inversión</span></div>
+        <div class="tile hi"><strong id="c-month">—</strong><span>ahorro al mes (año 1)</span></div>
+        <div class="tile"><strong id="c-net">—</strong><span id="c-net-l">ahorro neto</span></div>
+        <div class="tile"><strong id="c-lcoe">—</strong><span>costo de tu energía solar por kWh</span></div>
+      </div>
+      <h3>Flujo acumulado</h3>
+      <div class="fig"><svg id="c-chart" role="img" aria-label="Flujo de caja acumulado por año"></svg></div>
+      <p class="small" id="c-chart-note"></p>
+      <details><summary>Ver tabla por año</summary>
+        <div class="scroll"><table><thead><tr><th>Año</th><th>Generación kWh</th><th>Tarifa</th><th>Ahorro</th><th>Acumulado</th></tr></thead><tbody id="c-table"></tbody></table></div>
+      </details>
+      <div class="method"><h3>Cómo se calculó</h3><p class="small" id="c-method"></p></div>
+      <p class="hint">Estimación de referencia, no asesoría financiera. No incluye financiación ni beneficios tributarios de la Ley 1715 de 2014, que pueden reducir el costo; consúltalos con tu contador o instalador.</p>
+    </section>
+  </div>
+</section>
+
+<!-- ===================== INFORME ===================== -->
+<section class="view" id="view-informe" data-v="informe" hidden>
+  <div class="intro"><h1>Informe y proyectos</h1><p>Guarda cada casa o cliente, comparte y descarga el PDF.</p></div>
+  <div class="ws">
+    <div class="card">
+      <h2>Proyecto actual</h2>
+      <div class="field"><label for="project-name">Nombre del proyecto</label><input id="project-name" data-k placeholder="Ej. Casa familia Pérez"></div>
+      <div class="field"><label for="client-name">Cliente o dirección</label><input id="client-name" data-k placeholder="Opcional"></div>
+      <div class="field"><label for="project-notes">Notas</label><textarea id="project-notes" data-k placeholder="Techo, orientación, observaciones…"></textarea></div>
+      <div class="actions">
+        <button type="button" class="primary" id="pdf-btn">Descargar informe PDF</button>
+        <a class="btn wa" id="wa-btn" href="https://wa.me/" target="_blank" rel="noopener noreferrer">Compartir por WhatsApp</a>
+      </div>
+      <div class="actions">
+        <button type="button" id="copy-btn">Copiar resumen</button>
+        <button type="button" id="install-btn" hidden>Instalar la app</button>
+      </div>
+      <p class="small" id="share-state" aria-live="polite"></p>
+      <details><summary>Vista previa del resumen</summary><p class="small" id="summary-preview" style="white-space:pre-line"></p></details>
+    </div>
+    <div class="card">
+      <h2>Proyectos guardados</h2>
+      <div class="actions">
+        <button type="button" class="primary" id="save-btn">Guardar proyecto</button>
+        <button type="button" id="new-btn">Nuevo proyecto</button>
+      </div>
+      <ul class="plist" id="plist"></ul>
+      <p class="empty" id="plist-empty">Aún no tienes proyectos guardados. Se guardan solo en este dispositivo.</p>
+      <details><summary>Copia de seguridad</summary>
+        <p class="small">Exporta tus proyectos a un archivo para pasarlos a otro teléfono o computador.</p>
+        <div class="actions"><button type="button" id="export-btn">Exportar proyectos</button></div>
+        <div class="field"><label for="import-file">Importar archivo de proyectos</label><input id="import-file" type="file" accept=".json,application/json"></div>
+      </details>
+      <div class="method">
+        <h3>Acerca de</h3>
+        <p class="small">Calculadora fotovoltaica para tu casa · Autor: Hector David Agudelo Arias. Datos solares de 11 estaciones de referencia en las seis regiones de Colombia; los demás municipios usan la estación de clima parecido que se indica.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><p class="small">Fuentes · <a href="https://www.ideam.gov.co/sites/default/files/mapa-de-procesos/gci-rg-mo001_metodologia_operacion_estadistica_informacion_radiacion_global_recibida_en_superficie_v3_0.pdf" target="_blank" rel="noopener noreferrer">IDEAM, anexo 7</a> · <a href="https://docs.upme.gov.co/SIMEC/PERS/Choco/Informe_Oferta_Choco.pdf" target="_blank" rel="noopener noreferrer">UTCH y PERS Chocó</a> · <a href="https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis/general-information/data-sources-calculation-methods_en" target="_blank" rel="noopener noreferrer">PVGIS</a> · <a href="https://docs.upme.gov.co/DemandayEficiencia/Documents/Balance_energia_util/BEU-Residencial.pdf" target="_blank" rel="noopener noreferrer">UPME</a></p><p class="small">Calculadora fotovoltaica · Hector David Agudelo Arias</p></footer>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="dialog" id="dialog" hidden><div class="card" role="dialog" aria-modal="true" aria-labelledby="dlg-t"><h3 id="dlg-t"></h3><p class="small" id="dlg-p"></p><div class="actions"><button type="button" id="dlg-no">Cancelar</button><button type="button" class="primary" id="dlg-yes">Aceptar</button></div></div></div>
+
+<script>
+{
+const $ = id => document.getElementById(id);
+const num = new Intl.NumberFormat('es-CO',{maximumFractionDigits:2});
+const int = new Intl.NumberFormat('es-CO',{maximumFractionDigits:0});
+const one = new Intl.NumberFormat('es-CO',{maximumFractionDigits:1,minimumFractionDigits:1});
+const cop = v => (v < -0.5 ? '−' : '') + '$' + int.format(Math.abs(Math.round(v)));
+const copShort = v => Math.abs(v) >= 1e6 ? (v < 0 ? '−' : '') + '$' + num.format(Math.round(Math.abs(v)/1e5)/10) + ' M' : cop(v);
+const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DAYS = [31,28,31,30,31,30,31,31,30,31,30,31];
+
+/* Estaciones de referencia (irradiación horizontal diaria, Wh/m² por mes) */
+const STATIONS = [
+  ['Quibdó','Chocó','UTCH y PERS Chocó','2000–2014',[3089,3231,3372,3553,3664,3806,3916,4117,4046,3729,3472,3139],'Pacífica',[5.69,-76.66]],
+  ['Bogotá','Bogotá D.C.','IDEAM · Aeropuerto El Dorado','mar. 1981–dic. 2004',[4681.9,4322.1,4322.2,3716.7,3506,3658.9,3917.3,4168.2,3947.8,3961,4017.7,4241.4],'Andina',[4.71,-74.15]],
+  ['Medellín','Antioquia','IDEAM · Metromedellín','jul. 2005–ago. 2018',[4391.2,4738.2,4313.7,4331.6,4300.3,4802.5,4986.4,4862,4861.2,4155,4071.5,4251.5],'Andina',[6.33,-75.55]],
+  ['Cali','Valle del Cauca','IDEAM · Univalle','nov. 2006–oct. 2016',[4568.3,4564.2,4525.8,4436.1,4312.8,4488.1,4762.5,4829.5,4794.4,4473.5,4133.4,4234.4],'Andina',[3.38,-76.53]],
+  ['Bucaramanga','Santander','IDEAM · Neomundo','dic. 2014–oct. 2019',[4436.5,4841.8,4620,4750.6,4394.4,4216.4,4243.5,4459,4673.6,4381.1,4057.6,4424.3],'Andina',[7.10,-73.11]],
+  ['Barranquilla','Atlántico','IDEAM · Las Flores (ENAVAL)','nov. 2009–ago. 2015',[6212.7,6025,6297.6,5660.4,5566.3,5696.4,5830.2,5520.2,5060.8,4800.3,4899.6,5627.4],'Caribe',[11.04,-74.82]],
+  ['Villavicencio','Meta','IDEAM · ICA Villavicencio','mar. 2007–sep. 2016',[5207.6,4741.6,4376,4406.7,4422.2,4242.7,4358.2,4585.3,5264.8,5102,4893.2,4905.6],'Orinoquía',[4.14,-73.63]],
+  ['Yopal','Casanare','IDEAM · Aeropuerto El Alcaraván','nov. 2009–feb. 2017',[5747.4,5595,4889.3,4511.8,4430.1,4357.2,4832.3,4528.7,5192.6,5183.4,5518.3,5521.8],'Orinoquía',[5.32,-72.39]],
+  ['Leticia','Amazonas','IDEAM · Aeropuerto Vásquez Cobo','ago. 2014–sep. 2018',[4194.8,3984.5,4195.8,4017,3810.4,3770,4241.4,4667.4,4880.6,4668.4,4674,4284.3],'Amazonía',[-4.19,-69.94]],
+  ['Florencia','Caquetá','IDEAM · Macagual','jul. 2005–oct. 2016',[4082.3,3956.2,3349.4,3485.4,3004.8,3193.8,3137.7,3577.7,3790,3939,3951.1,3918.7],'Amazonía',[1.50,-76.56]],
+  ['San Andrés','San Andrés','IDEAM · Universidad de San Andrés y Providencia','jul. 2014–sep. 2018',[4716.4,5145,6630.6,5910.1,5432,5005.1,5444.9,5216.8,5193.1,4911.7,4364.2,4416.1],'Insular',[12.54,-81.73]]
+];
+/* Capitales sin estación propia: [municipio, departamento, estación de referencia, [lat, lon]] */
+const NEARBY = [
+  ['Cartagena','Bolívar','Barranquilla',[10.39,-75.51]],['Santa Marta','Magdalena','Barranquilla',[11.24,-74.20]],
+  ['Riohacha','La Guajira','Barranquilla',[11.54,-72.91]],['Valledupar','Cesar','Barranquilla',[10.46,-73.25]],
+  ['Montería','Córdoba','Barranquilla',[8.75,-75.88]],['Sincelejo','Sucre','Barranquilla',[9.30,-75.40]],
+  ['Tunja','Boyacá','Bogotá',[5.54,-73.36]],['Pasto','Nariño','Bogotá',[1.21,-77.28]],
+  ['Manizales','Caldas','Medellín',[5.07,-75.52]],['Pereira','Risaralda','Medellín',[4.81,-75.69]],
+  ['Armenia','Quindío','Medellín',[4.53,-75.68]],['Ibagué','Tolima','Medellín',[4.44,-75.23]],
+  ['Popayán','Cauca','Cali',[2.44,-76.61]],['Neiva','Huila','Cali',[2.93,-75.28]],
+  ['Cúcuta','Norte de Santander','Bucaramanga',[7.89,-72.50]],
+  ['Buenaventura','Valle del Cauca','Quibdó',[3.88,-77.03]],['Tumaco','Nariño','Quibdó',[1.80,-78.76]],
+  ['Arauca','Arauca','Yopal',[7.08,-70.76]],['Puerto Carreño','Vichada','Yopal',[6.19,-67.49]],
+  ['San José del Guaviare','Guaviare','Villavicencio',[2.57,-72.64]],
+  ['Mocoa','Putumayo','Florencia',[1.15,-76.65]],['Mitú','Vaupés','Leticia',[1.25,-70.23]],
+  ['Inírida','Guainía','Leticia',[3.87,-67.92]],['Providencia','San Andrés','San Andrés',[13.35,-81.37]]
+];
+const PLACES = [
+  ...STATIONS.map(s => ({name:s[0],dept:s[1],station:s,region:s[5],coords:s[6],ref:false})),
+  ...NEARBY.map(n => { const s = STATIONS.find(x => x[0] === n[2]); return {name:n[0],dept:n[1],station:s,region:s[5],coords:n[3],ref:true}; })
+];
+const REGIONS = ['Andina','Caribe','Pacífica','Orinoquía','Amazonía','Insular'];
+const EQUIPMENT = [['Bombillo LED',12],['Nevera',210],['Ventilador',70],['Televisor',60],['Computador portátil',40],['Computador de escritorio',65],['Microondas',1170],['Lavadora',500],['Ducha eléctrica',3500],['Plancha',1000],['Bomba de agua',750],['Aire acondicionado',1820],['Router de internet',10],['Otro equipo',null]];
+
+const R = {panels:null,battery:null,econ:null};
+let coverage = 100, solarFile = null, currentId = null, loading = false;
+
+/* ---------- utilidades ---------- */
+function parseNum(v){
+  v = String(v ?? '').trim().replace(/[−–]/g,'-').replace(/\s|\$/g,'');
+  if (!v) return NaN;
+  // 3.800.000 o 1.234,5 → miles con punto; 1,2 → decimal con coma
+  if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(v)) v = v.replace(/\./g,'').replace(',','.');
+  else if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(v) && !/^-?\d{1,3},\d{3}$/.test(v)) v = v.replace(/,/g,'');
+  else v = v.replace(',','.');
+  return /^[+-]?(\d+(\.\d+)?|\.\d+)$/.test(v) ? Number(v) : NaN;
+}
+const val = id => parseNum($(id).value);
+function need(id,min,max,msg,whole=false){
+  const n = val(id);
+  if (!(n >= min && n <= max) || (whole && !Number.isInteger(n))){ const e = new Error(msg); e.field = id; throw e; }
+  return n;
+}
+function ceilCount(raw){ return Math.max(1,Math.ceil(raw - Number.EPSILON*raw*4)); }
+function showErr(box,form,e){
+  form.querySelectorAll('[aria-invalid=true]').forEach(x => x.removeAttribute('aria-invalid'));
+  if (!e){ box.hidden = true; return; }
+  box.textContent = e.message; box.hidden = false;
+  if (e.field && $(e.field)) $(e.field).setAttribute('aria-invalid','true');
+}
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3200); }
+function confirmBox(title,text,yes='Aceptar'){
+  return new Promise(res => {
+    $('dlg-t').textContent = title; $('dlg-p').textContent = text; $('dlg-yes').textContent = yes; $('dialog').hidden = false; $('dlg-yes').focus();
+    const done = v => { $('dialog').hidden = true; $('dlg-yes').onclick = $('dlg-no').onclick = null; res(v); };
+    $('dlg-yes').onclick = () => done(true); $('dlg-no').onclick = () => done(false);
+  });
+}
+const store = {
+  get(k,d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k,v){ try { localStorage.setItem(k,JSON.stringify(v)); return true; } catch { return false; } }
+};
+function haversine(a,b){
+  const r = x => x*Math.PI/180, dLat = r(b[0]-a[0]), dLon = r(b[1]-a[1]);
+  const h = Math.sin(dLat/2)**2 + Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dLon/2)**2;
+  return 12742*Math.asin(Math.sqrt(h));
+}
+
+/* ---------- selector de municipios ---------- */
+for (const region of REGIONS){
+  const g = document.createElement('optgroup'); g.label = region;
+  PLACES.filter(p => p.region === region).sort((a,b) => a.name.localeCompare(b.name,'es'))
+    .forEach(p => g.append(new Option(p.name + (p.ref ? ' (' + p.dept + ')' : ''), p.name)));
+  $('municipality').append(g);
+}
+$('municipality').value = 'Quibdó';
+const place = () => PLACES.find(p => p.name === $('municipality').value) || PLACES[0];
+
+/* ---------- PVGIS ---------- */
+function parsePVGIS(data){
+  const monthly = data?.outputs?.monthly?.fixed, sys = data?.inputs?.pv_module, peak = sys?.peak_power;
+  if (!Array.isArray(monthly) || monthly.length !== 12 || !Number.isFinite(peak) || peak <= 0)
+    throw new Error('El archivo debe ser un JSON de PVGIS 5.3 con doce meses de producción fija.');
+  const values = new Array(12).fill(null);
+  for (const row of monthly){
+    const m = row?.month;
+    if (!Number.isInteger(m) || m < 1 || m > 12 || values[m-1] !== null || !Number.isFinite(row.E_m) || row.E_m < 0)
+      throw new Error('El archivo debe tener un valor válido de producción para cada mes.');
+    values[m-1] = row.E_m / peak;
+  }
+  if (values.every(v => v === 0)) throw new Error('El archivo no contiene generación solar positiva.');
+  return {values,location:data.inputs.location,loss:sys.system_loss};
+}
+function pvgisURL(){
+  const lat = val('lat'), lon = val('lon');
+  if (!(lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180)) return null;
+  return 'https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?' + new URLSearchParams({lat,lon,peakpower:1,loss:14,mountingplace:'building',optimalangles:1,outputformat:'json'});
+}
+function updatePVGISLink(){
+  const u = pvgisURL();
+  $('pvgis-link').href = u ? u + '&browser=1' : 'https://re.jrc.ec.europa.eu/pvg_tools/en/';
+  $('pvgis-link').textContent = u ? 'Descargar el JSON de PVGIS' : 'Abrir PVGIS para elegir la ubicación';
+}
+function setSolarFile(data,label){
+  solarFile = data;
+  $('pvgis-state').textContent = label + ' · 12 meses de producción cargados.';
+  recalc(); autosave();
+}
+
+/* ---------- recurso solar ---------- */
+function resource(){
+  const mode = $('resource-mode').value;
+  if (mode === 'pvgis'){
+    if (!solarFile){ const e = new Error('Trae los datos de PVGIS o importa su archivo JSON, o elige otro modo de datos solares.'); e.field = 'pvgis-file'; throw e; }
+    const loc = solarFile.location || {};
+    const coords = Number.isFinite(loc.latitude) ? ' · ' + num.format(loc.latitude) + '°, ' + num.format(loc.longitude) + '°' : '';
+    return {values:solarFile.values,label:'PVGIS' + coords,note:'Fuente PVGIS 5.3' + coords + (Number.isFinite(solarFile.loss) ? ' · pérdidas del archivo ' + num.format(solarFile.loss) + ' %' : ''),
+      method:'Cada valor mensual de PVGIS se divide por su potencia de referencia. Las pérdidas ya vienen incluidas.',manual:false};
+  }
+  const losses = need('losses',0,75,'Ingresa pérdidas entre 0 y 75 %.');
+  if (mode === 'city'){
+    const p = place(), [st,,station,period,irr] = p.station;
+    const gross = irr.map((v,i) => v*DAYS[i]/1000);
+    const hsp = gross.reduce((a,b) => a+b,0)/365;
+    $('city-info').textContent = (p.ref ? 'Sin estación propia: usa los datos de ' + st + ', de clima parecido. Para mayor precisión usa «Mi ubicación exacta». ' : '') +
+      num.format(hsp) + ' horas solares pico/día · ' + station + ' · ' + period + '.';
+    return {values:gross.map(v => v*(1-losses/100)),label:p.name + (p.ref ? ' (ref. ' + st + ')' : ''),
+      note:p.name + (p.ref ? ' (datos de ' + st + ')' : '') + ' · ' + num.format(hsp) + ' h solares pico/día · ' + num.format(losses) + ' % de pérdidas',
+      method:'Convertimos la irradiación horizontal diaria de cada mes a horas pico, la multiplicamos por los días del mes y aplicamos ' + num.format(losses) + ' % de pérdidas. Fuente: ' + station + ', ' + period + '.',manual:false};
+  }
+  const h = need('sun-hours',0.1,12,'Ingresa horas solares pico entre 0,1 y 12.');
+  const y = h*(1-losses/100);
+  return {values:DAYS.map(d => d*y),label:'Manual ' + num.format(h) + ' h pico',note:'Modo manual · ' + num.format(h) + ' h pico/día · ' + num.format(losses) + ' % de pérdidas',
+    method:'Multiplicamos ' + num.format(h) + ' horas pico × (1 − ' + num.format(losses) + ' %) × días de cada mes.',manual:true};
+}
+
+/* ---------- 1. paneles ---------- */
+function calcPanels(){
+  try {
+    const consumption = need('consumption',0.01,100000,'Ingresa un consumo mensual mayor que cero (kWh).');
+    const watts = need('watts',1,2000,'Ingresa una potencia por panel entre 1 y 2.000 Wp.');
+    const data = resource();
+    const annualYield = data.values.reduce((a,b) => a+b,0);
+    if (!(annualYield > 0)) throw new Error('La producción anual debe ser mayor que cero.');
+    const target = consumption*12*coverage/100;
+    const count = ceilCount(target/annualYield/(watts/1000));
+    const kwp = count*watts/1000, monthly = data.values.map(v => v*kwp), annual = annualYield*kwp;
+    let quote = null;
+    if ($('quote-panels').value.trim() || $('quote-watts').value.trim()){
+      try {
+        const q = need('quote-panels',1,10000,'Indica un número entero de paneles cotizados.',true);
+        const qw = need('quote-watts',1,2000,'Indica la potencia por panel de la cotización.');
+        const qkwp = q*qw/1000, price = val('quote-price');
+        quote = {panels:q,watts:qw,kwp:qkwp,annual:qkwp*annualYield,price:price > 0 ? price : null};
+      } catch (e){ quote = {error:e.message}; }
+    }
+    R.panels = {consumption,watts,coverage,target,count,kwp,annual,monthly,annualYield,cover:100*annual/(consumption*12),note:data.note,label:data.label,method:data.method,quote};
+    $('p-count').textContent = int.format(count);
+    $('p-panel-desc').textContent = 'de ' + num.format(watts) + ' Wp · meta ' + coverage + ' % · ' + int.format(target) + ' kWh/año';
+    $('p-kwp').textContent = num.format(kwp);
+    $('p-annual').textContent = int.format(annual);
+    $('p-cover').textContent = int.format(R.panels.cover) + ' %';
+    $('p-note').textContent = data.note;
+    const qp = $('p-quote');
+    if (quote){
+      qp.hidden = false;
+      if (quote.error) qp.textContent = quote.error;
+      else {
+        const diff = 100*(quote.kwp/kwp - 1);
+        qp.textContent = 'La cotización suma ' + num.format(quote.kwp) + ' kWp (' + (diff >= 0 ? '+' : '') + int.format(diff) + ' % frente a esta estimación) y generaría unos ' + int.format(quote.annual) + ' kWh/año, el ' + int.format(100*quote.annual/(consumption*12)) + ' % de tu consumo.' +
+          (quote.price ? ' Precio por Wp: ' + cop(quote.price/(quote.kwp*1000)) + '.' : '');
+      }
+    } else qp.hidden = true;
+    $('p-method').textContent = data.method + ' El rendimiento anual es ' + num.format(annualYield) + ' kWh por kWp. Meta anual ÷ rendimiento ÷ kWp de cada panel, redondeado hacia arriba.';
+    drawMonthly(monthly,target/12);
+    $('p-monthly').hidden = false;
+    showErr($('p-error'),$('f-panels'));
+  } catch (e){
+    R.panels = null;
+    for (const id of ['p-count','p-kwp','p-annual','p-cover']) $(id).textContent = '—';
+    $('p-panel-desc').textContent = ''; $('p-note').textContent = 'Pendiente de datos válidos.';
+    $('p-method').textContent = 'Completa tus datos para ver la fórmula con tus valores.';
+    $('p-monthly').hidden = true; $('p-quote').hidden = true;
+    showErr($('p-error'),$('f-panels'),e);
+  }
+}
+function drawMonthly(values,target){
+  const max = Math.max(target,...values);
+  $('p-chart').innerHTML = values.map((v,i) => '<div class="mo"><div class="bars" title="' + MONTHS[i] + ' · ' + int.format(v) + ' kWh"><span class="bar" style="height:' + (100*v/max) + '%"></span><span class="bar t" style="height:' + (100*target/max) + '%"></span></div>' + MONTHS[i] + '</div>').join('');
+  $('p-table').innerHTML = values.map((v,i) => '<tr><td>' + MONTHS[i] + '</td><td>' + int.format(v) + '</td><td>' + int.format(target) + '</td></tr>').join('') +
+    '<tr><th>Total</th><th>' + int.format(values.reduce((a,b) => a+b,0)) + '</th><th>' + int.format(target*12) + '</th></tr>';
+}
+
+/* ---------- 2. baterías ---------- */
+function eqOptions(sel){
+  sel.add(new Option('Elige un equipo',''));
+  EQUIPMENT.forEach(([n]) => sel.add(new Option(n,n)));
+}
+function addEquipment(name='',qty=1,w=null,day=0,night=0){
+  if ($('eq-rows').children.length >= 20) return null;
+  const row = document.createElement('div'); row.className = 'load-card';
+  const id = Math.random().toString(36).slice(2,8);
+  row.innerHTML = '<label for="eq-' + id + '">Equipo</label><div class="load-head"><select id="eq-' + id + '" data-f="name"></select><button type="button" aria-label="Quitar equipo">Quitar</button></div>' +
+    '<div class="lf"><div><label for="q-' + id + '">Cantidad</label><input id="q-' + id + '" data-f="qty" inputmode="numeric"></div>' +
+    '<div><label for="w-' + id + '">Vatios c/u</label><input id="w-' + id + '" data-f="w" inputmode="decimal"></div>' +
+    '<div><label for="d-' + id + '">Horas de día</label><input id="d-' + id + '" data-f="day" inputmode="decimal"></div>' +
+    '<div><label for="n-' + id + '">Horas de noche</label><input id="n-' + id + '" data-f="night" inputmode="decimal"></div></div>';
+  const sel = row.querySelector('select'); eqOptions(sel); sel.value = name;
+  const f = k => row.querySelector('[data-f=' + k + ']');
+  f('qty').value = qty; f('day').value = String(day).replace('.',','); f('night').value = String(night).replace('.',',');
+  f('w').value = w ?? (EQUIPMENT.find(e => e[0] === name)?.[1] ?? '');
+  sel.addEventListener('change',() => { f('w').value = EQUIPMENT.find(e => e[0] === sel.value)?.[1] ?? ''; });
+  row.querySelector('button').addEventListener('click',() => { row.remove(); $('eq-add').disabled = false; recalc(); autosave(); });
+  $('eq-rows').append(row);
+  $('eq-add').disabled = $('eq-rows').children.length >= 20;
+  return sel;
+}
+function readEquipment(){
+  return [...$('eq-rows').children].map(r => ({name:r.querySelector('select').value,qty:r.querySelector('[data-f=qty]').value,w:r.querySelector('[data-f=w]').value,day:r.querySelector('[data-f=day]').value,night:r.querySelector('[data-f=night]').value}));
+}
+function estimateEquipment(){
+  let day = 0, night = 0, connected = 0;
+  readEquipment().forEach((e,i) => {
+    if (!e.name) return;
+    const q = parseNum(e.qty), w = parseNum(e.w), hd = parseNum(e.day), hn = parseNum(e.night);
+    if (!Number.isInteger(q) || q < 1 || q > 1000 || !(w > 0 && w <= 100000) || !(hd >= 0 && hn >= 0 && hd+hn <= 24))
+      throw new Error('Equipo ' + (i+1) + ' (' + e.name + '): revisa cantidad, vatios y que las horas sumen máximo 24.');
+    const kw = q*w/1000; day += kw*hd; night += kw*hn; if (hd+hn > 0) connected += kw;
+  });
+  return {day,night,connected};
+}
+function calcBattery(){
+  $('og-result').hidden = true; $('og-notice').hidden = true; $('eq-totals').textContent = '';
+  try {
+    const list = $('load-mode').value === 'list';
+    const {day,night,connected} = list ? estimateEquipment() : {day:need('load-day',0,10000,'Revisa el consumo de día.'),night:need('load-night',0,10000,'Revisa el consumo de noche.')};
+    if (list) $('eq-totals').textContent = num.format(day) + ' kWh de día y ' + num.format(night) + ' kWh de noche. Si todo funciona a la vez suman ' + num.format(connected) + ' kW, sin contar picos de arranque.';
+    if (day + night <= 0) throw new Error('Ingresa consumo para al menos un horario.');
+    const autonomy = need('autonomy',0.1,30,'Ingresa entre 0,1 y 30 días de respaldo.');
+    const peak = need('load-peak',0.01,1000,'Ingresa la potencia simultánea en kW.');
+    const depth = need('depth',1,100,'Ingresa una descarga utilizable entre 1 y 100 %.')/100;
+    const dis = need('discharge-eff',1,100,'Ingresa una eficiencia de descarga entre 1 y 100 %.')/100;
+    const delivered = (day+night)*autonomy, usable = delivered/dis, nominal = usable/depth;
+    R.battery = {mode:$('battery-mode').value,day,night,autonomy,peak,depth,dis,delivered,usable,nominal,offgrid:null};
+    $('b-nominal').textContent = num.format(nominal);
+    $('b-usable').textContent = num.format(usable);
+    $('b-inverter').textContent = num.format(peak);
+    $('b-delivered').textContent = 'Energía para los equipos: ' + num.format(delivered) + ' kWh en ' + num.format(autonomy) + ' día(s).';
+    if ($('battery-mode').value === 'offgrid'){
+      $('og-notice').hidden = false;
+      try {
+        const cycle = need('trip-eff',1,100,'Ingresa una eficiencia del ciclo completo entre 1 y 100 %.')/100;
+        if (cycle > dis) throw new Error('La eficiencia del ciclo completo debe ser menor o igual que la de descarga.');
+        const watt = need('watts',1,2000,'Revisa la potencia por panel en la pestaña Paneles.');
+        const data = resource();
+        const daily = data.values.map((v,i) => v/DAYS[i]), low = Math.min(...daily);
+        if (!(low > 0)) throw new Error('El mes de menor producción debe tener rendimiento positivo.');
+        const target = day + night/cycle, count = ceilCount(target/low/(watt/1000));
+        R.battery.offgrid = {count,watt,kwp:count*watt/1000,low,month:data.manual ? null : MONTHS[daily.indexOf(low)],target};
+        $('og-panels').textContent = int.format(count) + ' paneles de ' + num.format(watt) + ' Wp · ' + num.format(count*watt/1000) + ' kWp';
+        $('og-detail').textContent = (data.manual ? 'El modo manual usa el mismo rendimiento cada día (' : MONTHS[daily.indexOf(low)] + ' es el mes de menor rendimiento diario (') + num.format(low) + ' kWh por kWp al día). El sistema debe generar unos ' + num.format(target) + ' kWh/día para las cargas de día y reponer las de noche. Datos solares: ' + data.label + '.';
+        $('og-result').hidden = false;
+        $('og-notice').textContent = 'Usa promedios mensuales: no simula días nublados seguidos ni el tiempo de recarga tras agotar la reserva.';
+      } catch (e){ $('og-notice').textContent = e.message; }
+    }
+    showErr($('b-error'),$('f-battery'));
+  } catch (e){
+    R.battery = null;
+    for (const id of ['b-nominal','b-usable','b-inverter']) $(id).textContent = '—';
+    $('b-delivered').textContent = '';
+    showErr($('b-error'),$('f-battery'),e);
+  }
+}
+
+/* ---------- 3. costos ---------- */
+function calcEcon(){
+  const P = R.panels;
+  $('bat-cost-field').hidden = !$('include-battery').checked;
+  try {
+    if (!P) throw new Error('Primero completa la pestaña Paneles.');
+    const T = need('tariff',1,100000,'Ingresa la tarifa en COP por kWh.');
+    const useQuote = $('use-quote').checked;
+    let kwp = P.kwp, annual0 = P.annual, invest, basis;
+    if (useQuote){
+      const q = P.quote;
+      if (!q || q.error || !q.price){ const e = new Error('Para usar la cotización, escribe paneles, Wp y precio en «Comparar con una cotización» (pestaña Paneles).'); e.field = 'use-quote'; throw e; }
+      kwp = q.kwp; annual0 = q.annual; invest = q.price; basis = 'Cotización: ' + num.format(kwp) + ' kWp por ' + cop(invest) + '.';
+    } else {
+      const C = need('cost-kwp',1,1e9,'Ingresa el costo instalado por kWp.');
+      invest = kwp*C; basis = 'Estimación: ' + num.format(kwp) + ' kWp × ' + cop(C) + ' por kWp.';
+    }
+    const s = need('self-use',0,100,'Ingresa un autoconsumo entre 0 y 100 %.')/100;
+    const ev = need('export-value',0,100,'Ingresa el valor de los excedentes entre 0 y 100 %.')/100;
+    const g = need('tariff-growth',-20,50,'Ingresa un alza anual de tarifa entre −20 y 50 %.')/100;
+    const d = need('degradation',0,5,'Ingresa una pérdida anual de los paneles entre 0 y 5 %.')/100;
+    const om = need('om',0,20,'Ingresa un mantenimiento entre 0 y 20 % anual.')/100;
+    const N = need('years',1,40,'Ingresa entre 1 y 40 años.',true);
+    let batInvest = 0;
+    if ($('include-battery').checked){
+      if (!R.battery){ const e = new Error('Completa la pestaña Baterías o desmarca «Incluir la batería».'); e.field = 'include-battery'; throw e; }
+      batInvest = R.battery.nominal*need('battery-cost',0,1e9,'Ingresa el costo de la batería por kWh.');
+    }
+    invest += batInvest;
+    const cons = P.consumption*12, rows = []; let cum = -invest, payback = null, genSum = 0;
+    for (let y = 1; y <= N; y++){
+      const gen = annual0*(1-d)**(y-1), Ty = T*(1+g)**(y-1);
+      const self = Math.min(gen*s,cons), exp = gen - self;
+      const saving = self*Ty + exp*Ty*ev - invest*om;
+      const prev = cum; cum += saving; genSum += gen;
+      if (payback === null && cum >= 0 && saving > 0) payback = y - 1 + (-prev)/saving;
+      rows.push({y,gen,Ty,saving,cum});
+    }
+    const s1 = rows[0].saving + invest*om; // ahorro bruto año 1
+    const lcoe = (invest*(1+om*N))/genSum;
+    R.econ = {T,invest,batInvest,basis,s,ev,g,d,om,N,rows,payback,s1,net:cum,lcoe,kwp,billCut:100*s1/(cons*T)};
+    $('c-payback').textContent = payback === null ? 'Más de ' + N : one.format(payback);
+    $('c-payback-s').textContent = payback === null ? 'No se recupera dentro del período analizado con estos supuestos.' : 'Reduce la factura cerca de ' + int.format(Math.min(100,R.econ.billCut)) + ' % el primer año.';
+    $('c-invest').textContent = copShort(invest);
+    $('c-month').textContent = copShort(s1/12);
+    $('c-net').textContent = copShort(cum);
+    $('c-net-l').textContent = 'ahorro neto en ' + N + ' años';
+    $('c-lcoe').textContent = cop(lcoe);
+    $('c-base').textContent = basis + (batInvest ? ' Batería: ' + cop(batInvest) + '.' : '');
+    $('c-table').innerHTML = rows.map(r => '<tr><td>' + r.y + '</td><td>' + int.format(r.gen) + '</td><td>' + cop(r.Ty) + '</td><td>' + cop(r.saving) + '</td><td>' + cop(r.cum) + '</td></tr>').join('');
+    $('c-method').textContent = 'Cada año: generación × autoconsumo (' + int.format(s*100) + ' %, sin pasar de tu consumo) se valora a la tarifa; el resto se valora al ' + int.format(ev*100) + ' % de la tarifa. La tarifa sube ' + num.format(g*100) + ' % al año, los paneles pierden ' + num.format(d*100) + ' % al año y se resta mantenimiento del ' + num.format(om*100) + ' % de la inversión. El costo por kWh divide inversión y mantenimiento entre la energía de ' + N + ' años; compáralo con tu tarifa de ' + cop(T) + '.';
+    $('c-chart-note').textContent = 'Por debajo de la línea cero aún estás pagando la inversión; el cruce marca el año en que se recupera.';
+    drawCash();
+    showErr($('c-error'),$('f-costs'));
+  } catch (e){
+    R.econ = null;
+    for (const id of ['c-payback','c-invest','c-month','c-net','c-lcoe']) $(id).textContent = '—';
+    $('c-payback-s').textContent = ''; $('c-table').innerHTML = ''; $('c-chart').innerHTML = ''; $('c-chart-note').textContent = '';
+    $('c-base').textContent = P ? '' : 'Usamos el sistema calculado en la pestaña Paneles.';
+    $('c-method').textContent = 'Completa los datos para ver el cálculo.';
+    showErr($('c-error'),$('f-costs'),e);
+  }
+}
+function drawCash(){
+  const s = $('c-chart'), E = R.econ;
+  if (!E || !s.clientWidth) return;
+  const W = s.clientWidth, H = s.clientHeight, narrow = W < 520;
+  const pad = {l:narrow ? 60 : 70,r:10,t:12,b:24};
+  const vals = [-E.invest,...E.rows.map(r => r.cum)];
+  const min = Math.min(0,...vals), max = Math.max(0,...vals);
+  const x = i => pad.l + i*(W-pad.l-pad.r)/(vals.length-1);
+  const y = v => pad.t + (max - v)*(H-pad.t-pad.b)/((max-min) || 1);
+  const step = (max-min)/4, ticks = [0,1,2,3,4].map(k => min + k*step);
+  const ink = getComputedStyle(document.body).color;
+  let h = ticks.map(t => '<line x1="' + pad.l + '" x2="' + (W-pad.r) + '" y1="' + y(t) + '" y2="' + y(t) + '" stroke="currentColor" opacity=".12"/><text x="' + (pad.l-6) + '" y="' + (y(t)+4) + '" text-anchor="end" font-size="' + (narrow ? 10 : 11) + '" fill="currentColor" opacity=".7">' + copShort(t) + '</text>').join('');
+  h += '<line x1="' + pad.l + '" x2="' + (W-pad.r) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="currentColor" opacity=".55"/>';
+  const bw = Math.max(2,(W-pad.l-pad.r)/vals.length*.62);
+  vals.forEach((v,i) => { const top = Math.min(y(v),y(0)), hh = Math.abs(y(v)-y(0)); h += '<rect x="' + (x(i)-bw/2) + '" y="' + top + '" width="' + bw + '" height="' + Math.max(1,hh) + '" rx="2" fill="' + (v < 0 ? '#c9604f' : '#2f8f5b') + '"/>'; });
+  const every = narrow ? 5 : (vals.length > 20 ? 5 : 2);
+  vals.forEach((v,i) => { if (i % every === 0 || i === vals.length-1) h += '<text x="' + x(i) + '" y="' + (H-6) + '" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">' + i + '</text>'; });
+  if (E.payback !== null){ const px = pad.l + E.payback*(W-pad.l-pad.r)/(vals.length-1); h += '<line x1="' + px + '" x2="' + px + '" y1="' + pad.t + '" y2="' + (H-pad.b) + '" stroke="#d9a545" stroke-width="2" stroke-dasharray="4 3"/>'; }
+  s.style.color = ink; s.innerHTML = h;
+}
+const cashObserver = new ResizeObserver(() => drawCash());
+cashObserver.observe($('c-chart'));
+
+/* ---------- resumen, WhatsApp, PDF ---------- */
+function summary(){
+  const P = R.panels, B = R.battery, E = R.econ, name = $('project-name').value.trim();
+  const L = ['☀ Calculadora solar' + (name ? ' · ' + name : '')];
+  if (P){
+    L.push('', 'Paneles: ' + int.format(P.count) + ' de ' + num.format(P.watts) + ' Wp (' + num.format(P.kwp) + ' kWp)',
+      'Generación: ' + int.format(P.annual) + ' kWh/año (' + int.format(P.cover) + ' % de ' + int.format(P.consumption) + ' kWh/mes)', 'Datos solares: ' + P.label);
+    if (P.quote && !P.quote.error) L.push('Cotización: ' + num.format(P.quote.kwp) + ' kWp → ' + int.format(P.quote.annual) + ' kWh/año');
+  }
+  if (B){
+    L.push('', 'Batería: ' + num.format(B.nominal) + ' kWh nominales (' + num.format(B.usable) + ' útiles) · inversor ≥ ' + num.format(B.peak) + ' kW');
+    if (B.offgrid) L.push('Sistema autónomo: ' + int.format(B.offgrid.count) + ' paneles (' + num.format(B.offgrid.kwp) + ' kWp)');
+  }
+  if (E) L.push('', 'Inversión: ' + cop(E.invest), 'Ahorro año 1: ' + cop(E.s1/12) + '/mes', 'Retorno: ' + (E.payback === null ? 'más de ' + E.N + ' años' : one.format(E.payback) + ' años'), 'Ahorro neto ' + E.N + ' años: ' + cop(E.net));
+  L.push('', 'Estimación de referencia; confirma con visita técnica.');
+  return L.join('\n');
+}
+function refreshShare(){
+  const t = summary();
+  $('summary-preview').textContent = t;
+  $('wa-btn').href = 'https://wa.me/?text=' + encodeURIComponent(t);
+}
+
+/* Generador de PDF propio (sin librerías, funciona sin conexión) */
+const HW = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+const WIN = {'–':0x96,'—':0x97,'‘':0x91,'’':0x92,'“':0x93,'”':0x94,'•':0x95,'…':0x85,'€':0x80,'−':0x2D,'≥':0x3E,'☀':0x2A,'→':0x3E};
+function winChar(ch){ if (WIN[ch]) return WIN[ch]; const c = ch.charCodeAt(0); return c < 256 ? c : 0x3F; }
+function textW(str,size,bold){
+  let w = 0;
+  for (const ch of str){ const base = ch.normalize('NFD')[0]; const c = base.charCodeAt(0); w += (c >= 32 && c <= 126 ? HW[c-32] : 556); }
+  return w*size/1000*(bold ? 1.06 : 1);
+}
+function makePDF(){
+  const pages = []; let ops = [], yy = 0;
+  const W = 595, H = 842, M = 44;
+  const esc = s => [...s].map(ch => { const c = winChar(ch); if (c === 0x28 || c === 0x29 || c === 0x5C) return '\\' + String.fromCharCode(c); return c > 126 || c < 32 ? '\\' + c.toString(8).padStart(3,'0') : String.fromCharCode(c); }).join('');
+  const rgb = h => [1,3,5].map(i => (parseInt(h.slice(i,i+2),16)/255).toFixed(3)).join(' ');
+  const text = (s,x,y,size=10,bold=false,color='#142833') => ops.push('BT ' + rgb(color) + ' rg /' + (bold ? 'F2' : 'F1') + ' ' + size + ' Tf ' + x.toFixed(1) + ' ' + (H-y).toFixed(1) + ' Td (' + esc(s) + ') Tj ET');
+  const rect = (x,y,w,h,color) => ops.push(rgb(color) + ' rg ' + x.toFixed(1) + ' ' + (H-y-h).toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1) + ' re f');
+  const line = (x1,y1,x2,y2,color='#d9e0da') => ops.push(rgb(color) + ' RG 0.6 w ' + x1 + ' ' + (H-y1) + ' m ' + x2 + ' ' + (H-y2) + ' l S');
+  const circle = (cx,cy,r,color) => { const k = r*.5523, Y = H-cy; ops.push(rgb(color) + ' rg ' + (cx+r) + ' ' + Y + ' m ' + (cx+r) + ' ' + (Y+k) + ' ' + (cx+k) + ' ' + (Y+r) + ' ' + cx + ' ' + (Y+r) + ' c ' + (cx-k) + ' ' + (Y+r) + ' ' + (cx-r) + ' ' + (Y+k) + ' ' + (cx-r) + ' ' + Y + ' c ' + (cx-r) + ' ' + (Y-k) + ' ' + (cx-k) + ' ' + (Y-r) + ' ' + cx + ' ' + (Y-r) + ' c ' + (cx+k) + ' ' + (Y-r) + ' ' + (cx+r) + ' ' + (Y-k) + ' ' + (cx+r) + ' ' + Y + ' c f'); };
+  const newPage = () => { if (ops.length) pages.push(ops.join('\n')); ops = []; yy = M; };
+  const ensure = h => { if (yy + h > H - M) { newPage(); } };
+  const wrap = (s,size,maxW,bold) => { const out = []; let cur = ''; for (const w of s.split(/\s+/)){ const t = cur ? cur + ' ' + w : w; if (textW(t,size,bold) > maxW && cur){ out.push(cur); cur = w; } else cur = t; } if (cur) out.push(cur); return out; };
+  const para = (s,size=9.5,color='#47606a',bold=false) => { for (const l of wrap(s,size,W-2*M,bold)){ ensure(size*1.45); text(l,M,yy+size,size,bold,color); yy += size*1.45; } yy += 4; };
+  const h2 = s => { ensure(120); yy += 10; text(s,M,yy+14,14,true,'#102c38'); yy += 22; line(M,yy,W-M,yy,'#1c6278'); yy += 8; };
+  const tiles = arr => { ensure(60); const gap = 8, tw = (W-2*M-gap*(arr.length-1))/arr.length; arr.forEach(([v,l],i) => { const x = M + i*(tw+gap); rect(x,yy,tw,52,i === 0 ? '#ffedc5' : '#edf5f6'); text(v,x+9,yy+24,16,true,'#102c38'); text(l,x+9,yy+41,8,false,'#47606a'); }); yy += 62; };
+  const kv = rows => { for (const [k,v] of rows){ ensure(16); text(k,M,yy+10,9.5,false,'#47606a'); text(v,W-M-textW(v,9.5,true),yy+10,9.5,true); yy += 15; line(M,yy-2,W-M,yy-2); } yy += 6; };
+
+  newPage();
+  const P = R.panels, B = R.battery, E = R.econ;
+  rect(0,0,W,96,'#102c38'); circle(W-80,48,26,'#f3bd58');
+  text('Informe de estimación solar',M,42,21,true,'#ffffff');
+  const pname = $('project-name').value.trim() || 'Proyecto sin nombre', client = $('client-name').value.trim();
+  text(pname + (client ? ' · ' + client : ''),M,64,11,false,'#e1edf0');
+  text(new Date().toLocaleDateString('es-CO',{day:'numeric',month:'long',year:'numeric'}),M,82,9,false,'#cfe2e6');
+  yy = 116;
+  if (P){
+    h2('Sistema conectado a la red');
+    tiles([[int.format(P.count),'paneles de ' + num.format(P.watts) + ' Wp'],[num.format(P.kwp),'kWp instalados'],[int.format(P.annual),'kWh/año estimados'],[int.format(P.cover) + ' %','del consumo anual']]);
+    kv([['Consumo mensual de referencia',int.format(P.consumption) + ' kWh'],['Meta de generación',P.coverage + ' % · ' + int.format(P.target) + ' kWh/año'],['Datos solares',P.label],['Rendimiento anual',num.format(P.annualYield) + ' kWh por kWp']]);
+    if (P.quote && !P.quote.error) kv([['Cotización comparada',int.format(P.quote.panels) + ' × ' + num.format(P.quote.watts) + ' Wp = ' + num.format(P.quote.kwp) + ' kWp'],['Generación de la cotización',int.format(P.quote.annual) + ' kWh/año']].concat(P.quote.price ? [['Precio cotizado',cop(P.quote.price) + ' (' + cop(P.quote.price/(P.quote.kwp*1000)) + '/Wp)']] : []));
+    ensure(150); text('Generación mes a mes (kWh)',M,yy+10,10,true); yy += 18;
+    const ch = 96, max = Math.max(P.target/12,...P.monthly), cw = (W-2*M)/12;
+    P.monthly.forEach((v,i) => { const bh = ch*v/max, th = ch*(P.target/12)/max, x = M + i*cw; rect(x+cw*.18,yy+ch-bh,cw*.32,bh,'#1c6278'); rect(x+cw*.52,yy+ch-th,cw*.3,th,'#d9a545'); text(MONTHS[i],x+cw/2-textW(MONTHS[i],8)/2,yy+ch+12,8,false,'#47606a'); text(int.format(v),x+cw/2-textW(int.format(v),7)/2,yy+ch+23,7,false,'#47606a'); });
+    line(M,yy+ch,W-M,yy+ch,'#799296'); yy += ch + 30;
+    para('Azul: generación estimada. Ocre: meta mensual equivalente. ' + P.method);
+  }
+  if (B){
+    h2(B.mode === 'offgrid' ? 'Sistema autónomo y baterías' : 'Respaldo con baterías');
+    tiles([[num.format(B.nominal),'kWh nominales de batería'],[num.format(B.usable),'kWh útiles'],[num.format(B.peak),'kW de inversor (mín.)']]);
+    kv([['Consumo de día / noche',num.format(B.day) + ' / ' + num.format(B.night) + ' kWh/día'],['Días de respaldo',num.format(B.autonomy)],['Descarga utilizable · eficiencia',int.format(B.depth*100) + ' % · ' + int.format(B.dis*100) + ' %']].concat(B.offgrid ? [['Paneles para sistema autónomo',int.format(B.offgrid.count) + ' × ' + num.format(B.offgrid.watt) + ' Wp = ' + num.format(B.offgrid.kwp) + ' kWp']] : []));
+    para('Supone la batería inicialmente cargada. No simula varios días nublados seguidos. Verifica picos de arranque y la potencia de descarga de la batería.');
+  }
+  if (E){
+    h2('Costos y retorno de la inversión');
+    tiles([[E.payback === null ? '> ' + E.N : one.format(E.payback),'años de retorno'],[copShort(E.invest),'inversión'],[copShort(E.s1/12),'ahorro al mes (año 1)'],[copShort(E.net),'ahorro neto ' + E.N + ' años']]);
+    kv([['Base de la inversión',E.basis.replace(/^.*?: /,'')],['Tarifa · alza anual',cop(E.T) + '/kWh · ' + num.format(E.g*100) + ' %'],['Autoconsumo · valor excedentes',int.format(E.s*100) + ' % · ' + int.format(E.ev*100) + ' % de la tarifa'],['Costo de la energía solar',cop(E.lcoe) + ' por kWh']]);
+    ensure(120); text('Flujo acumulado por año',M,yy+10,10,true); yy += 18;
+    const vals = [-E.invest,...E.rows.map(r => r.cum)], mn = Math.min(0,...vals), mx = Math.max(0,...vals), ch = 80, bw = (W-2*M)/vals.length;
+    const yv = v => yy + (mx - v)*ch/((mx-mn) || 1);
+    vals.forEach((v,i) => { const top = Math.min(yv(v),yv(0)), hh = Math.max(.8,Math.abs(yv(v)-yv(0))); rect(M+i*bw+bw*.15,top,bw*.7,hh,v < 0 ? '#c9604f' : '#2f8f5b'); if (i % 5 === 0) text(String(i),M+i*bw+bw/2-3,yy+ch+11,7.5,false,'#47606a'); });
+    line(M,yv(0),W-M,yv(0),'#47606a'); yy += ch + 22;
+    para('Estimación de referencia, no asesoría financiera. No incluye financiación ni beneficios tributarios de la Ley 1715 de 2014. El ahorro real depende de tu horario de consumo y de cómo se liquiden los excedentes.');
+  }
+  const notes = $('project-notes').value.trim();
+  if (notes){ h2('Notas'); para(notes,9.5,'#142833'); }
+  ensure(60); yy += 10; line(M,yy,W-M,yy);
+  yy += 4; para('Calculadora fotovoltaica para tu casa · Autor: Hector David Agudelo Arias. Fuentes: IDEAM, UTCH y PERS Chocó, PVGIS, UPME. Para confirmar el tamaño de la instalación pide una revisión del techo, la orientación y las sombras.',8);
+  pages.push(ops.join('\n'));
+
+  // ensamblar
+  const objs = []; const add = s => { objs.push(s); return objs.length; };
+  const f1 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  const f2 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  const pagesId = objs.length + 1 + pages.length*2; const kids = [];
+  pages.forEach(c => { const bin = [...c].map(ch => String.fromCharCode(ch.charCodeAt(0) & 255)).join(''); const cid = add('<< /Length ' + bin.length + ' >>\nstream\n' + bin + '\nendstream'); kids.push(add('<< /Type /Page /Parent ' + pagesId + ' 0 R /MediaBox [0 0 ' + W + ' ' + H + '] /Resources << /Font << /F1 ' + f1 + ' 0 R /F2 ' + f2 + ' 0 R >> >> /Contents ' + cid + ' 0 R >>')); });
+  add('<< /Type /Pages /Kids [' + kids.map(k => k + ' 0 R').join(' ') + '] /Count ' + kids.length + ' >>');
+  const cat = add('<< /Type /Catalog /Pages ' + pagesId + ' 0 R >>');
+  const info = add('<< /Title (' + esc('Informe solar - ' + pname) + ') /Author (' + esc('Calculadora fotovoltaica - Hector David Agudelo Arias') + ') >>');
+  let out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const offs = [];
+  objs.forEach((o,i) => { offs.push(out.length); out += (i+1) + ' 0 obj\n' + o + '\nendobj\n'; });
+  const xref = out.length;
+  out += 'xref\n0 ' + (objs.length+1) + '\n0000000000 65535 f \n' + offs.map(o => String(o).padStart(10,'0') + ' 00000 n \n').join('');
+  out += 'trailer\n<< /Size ' + (objs.length+1) + ' /Root ' + cat + ' 0 R /Info ' + info + ' 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+  const bytes = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 255;
+  return bytes;
+}
+let claudeDownloads = null;
+async function deliver(bytes,filename,mime){
+  const cap = window.Capacitor;
+  if (cap?.isNativePlatform?.() && cap.Plugins?.Filesystem && cap.Plugins?.Share){
+    let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+    const r = await cap.Plugins.Filesystem.writeFile({path:filename,data:btoa(bin),directory:'CACHE'});
+    await cap.Plugins.Share.share({title:filename,url:r.uri,dialogTitle:'Guardar o compartir'});
+    return 'Listo para guardar o compartir.';
+  }
+  if (claudeDownloads){ await claudeDownloads.save({filename,data:new Blob([bytes],{type:mime})}); return 'Archivo descargado.'; }
+  const file = new File([bytes],filename,{type:mime});
+  if (/Android|iPhone|iPad/i.test(navigator.userAgent) && navigator.canShare?.({files:[file]})){
+    try { await navigator.share({files:[file],title:filename}); return 'Compartido.'; } catch (e){ if (e.name === 'AbortError') return ''; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = filename; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href),4000);
+  return 'Archivo descargado.';
+}
+const slug = s => (s || 'proyecto').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]+/g,'-').replace(/^-|-$/g,'').toLowerCase().slice(0,40) || 'proyecto';
+
+/* ---------- estado, borrador y proyectos ---------- */
+function snapshot(){
+  const o = {coverage,equipment:readEquipment(),solarFile,fields:{}};
+  document.querySelectorAll('[data-k]').forEach(el => o.fields[el.id] = el.type === 'checkbox' ? el.checked : el.value);
+  return o;
+}
+function restore(o){
+  loading = true;
+  for (const [id,v] of Object.entries(o.fields || {})){ const el = $(id); if (!el) continue; if (el.type === 'checkbox') el.checked = !!v; else el.value = v; }
+  if (!place() || !PLACES.some(p => p.name === $('municipality').value)) $('municipality').value = 'Quibdó';
+  setCoverage(o.coverage || 100,false);
+  solarFile = o.solarFile || null;
+  $('pvgis-state').textContent = solarFile ? 'Datos de PVGIS guardados en el proyecto.' : 'Sistema fijo de 1 kWp, ángulos óptimos y 14 % de pérdidas.';
+  $('eq-rows').replaceChildren();
+  (o.equipment?.length ? o.equipment : defaultEquipment()).forEach(e => addEquipment(e.name,e.qty,e.w,e.day,e.night));
+  loading = false;
+  syncModes(); recalc();
+}
+function defaultEquipment(){ return [{name:'Bombillo LED',qty:3,w:12,day:2,night:4},{name:'Ventilador',qty:1,w:70,day:2,night:4},{name:'Nevera',qty:1,w:210,day:5,night:4}]; }
+let saveTimer;
+function autosave(){
+  if (loading) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => store.set('solar.draft.v1',{id:currentId,data:snapshot()}),300);
+  updateLabel();
+}
+function updateLabel(){
+  const n = $('project-name').value.trim();
+  $('project-label').textContent = n ? (currentId ? n : n + ' · sin guardar') : (currentId ? 'Proyecto guardado' : 'Proyecto sin guardar');
+}
+const projects = () => store.get('solar.projects.v1',[]);
+function renderProjects(){
+  const list = projects().sort((a,b) => b.date - a.date);
+  $('plist-empty').hidden = list.length > 0;
+  $('plist').replaceChildren(...list.map(p => {
+    const li = document.createElement('li');
+    const info = document.createElement('div'); info.className = 'pi';
+    const b = document.createElement('b'); b.textContent = p.name + (p.id === currentId ? ' · abierto' : '');
+    const s = document.createElement('span'); s.textContent = [p.client, p.summary, new Date(p.date).toLocaleDateString('es-CO')].filter(Boolean).join(' · ');
+    info.append(b,s);
+    const open = document.createElement('button'); open.type = 'button'; open.textContent = 'Abrir';
+    open.onclick = () => { currentId = p.id; restore(p.data); autosave(); renderProjects(); toast('Proyecto «' + p.name + '» abierto.'); location.hash = 'paneles'; };
+    const del = document.createElement('button'); del.type = 'button'; del.textContent = 'Borrar';
+    del.onclick = async () => { if (!await confirmBox('¿Borrar «' + p.name + '»?','Se elimina de este dispositivo y no se puede deshacer.','Borrar')) return; store.set('solar.projects.v1',projects().filter(x => x.id !== p.id)); if (currentId === p.id) currentId = null; autosave(); renderProjects(); toast('Proyecto borrado.'); };
+    li.append(info,open,del); return li;
+  }));
+}
+function saveProject(){
+  let name = $('project-name').value.trim();
+  if (!name){ name = 'Proyecto ' + new Date().toLocaleDateString('es-CO'); $('project-name').value = name; }
+  const list = projects(), id = currentId || Date.now().toString(36);
+  const P = R.panels;
+  const rec = {id,name,client:$('client-name').value.trim(),date:Date.now(),summary:P ? int.format(P.count) + ' paneles · ' + num.format(P.kwp) + ' kWp' : '',data:snapshot()};
+  const i = list.findIndex(x => x.id === id); if (i >= 0) list[i] = rec; else list.push(rec);
+  if (!store.set('solar.projects.v1',list)){ toast('Este navegador no permite guardar. Usa «Exportar proyectos».'); return; }
+  currentId = id; autosave(); renderProjects(); toast('Proyecto «' + name + '» guardado.');
+}
+
+/* ---------- interacción ---------- */
+function setCoverage(v,run=true){
+  coverage = Number(v);
+  $('coverage').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed',String(Number(b.value) === coverage)));
+  if (run){ recalc(); autosave(); }
+}
+function syncModes(){
+  const m = $('resource-mode').value;
+  $('city-box').hidden = m !== 'city'; $('manual-box').hidden = m !== 'manual'; $('pvgis-box').hidden = m !== 'pvgis'; $('loss-field').hidden = m === 'pvgis';
+  if (m === 'pvgis' && !$('lat').value && !$('lon').value){ const c = place().coords; $('lat').value = String(c[0]).replace('.',','); $('lon').value = String(c[1]).replace('.',','); }
+  updatePVGISLink();
+  const list = $('load-mode').value === 'list';
+  $('equipment-load').hidden = !list; $('manual-load').hidden = list;
+  $('trip-field').hidden = $('battery-mode').value !== 'offgrid';
+}
+function recalc(){ if (loading) return; calcPanels(); calcBattery(); calcEcon(); refreshShare(); }
+
+$('coverage').addEventListener('click',e => { const b = e.target.closest('button'); if (b) setCoverage(b.value); });
+document.addEventListener('input',e => {
+  if (e.target.matches('input[type=file]')) return;
+  if (e.target.matches('#lat,#lon')) updatePVGISLink();
+  if (e.target.closest('form,.card')){ recalc(); autosave(); }
+});
+document.addEventListener('change',e => {
+  if (e.target.matches('input[type=file]')) return;
+  if (e.target.matches('select,input[type=checkbox]')){ syncModes(); recalc(); autosave(); }
+});
+document.querySelectorAll('form').forEach(f => f.addEventListener('submit',e => e.preventDefault()));
+$('eq-add').addEventListener('click',() => { addEquipment()?.focus(); autosave(); });
+
+function locate(){
+  return new Promise((res,rej) => {
+    if (!navigator.geolocation) return rej(new Error('Este dispositivo no ofrece ubicación.'));
+    navigator.geolocation.getCurrentPosition(p => res([p.coords.latitude,p.coords.longitude]),() => rej(new Error('No se pudo obtener tu ubicación. Revisa el permiso o escribe las coordenadas.')),{enableHighAccuracy:false,timeout:12000,maximumAge:600000});
+  });
+}
+$('geo-city').addEventListener('click',async () => {
+  try {
+    const c = await locate();
+    const best = PLACES.map(p => [p,haversine(c,p.coords)]).sort((a,b) => a[1]-b[1])[0];
+    $('municipality').value = best[0].name; recalc(); autosave();
+    toast('Más cercano: ' + best[0].name + ' (a ' + int.format(best[1]) + ' km).');
+  } catch (e){ toast(e.message); }
+});
+$('geo-pvgis').addEventListener('click',async () => {
+  try { const c = await locate(); $('lat').value = num.format(Math.round(c[0]*1000)/1000); $('lon').value = num.format(Math.round(c[1]*1000)/1000); updatePVGISLink(); autosave(); toast('Ubicación lista. Ahora trae los datos de PVGIS.'); }
+  catch (e){ toast(e.message); }
+});
+$('pvgis-fetch').addEventListener('click',async () => {
+  const u = pvgisURL();
+  if (!u){ $('lat').setAttribute('aria-invalid','true'); toast('Escribe una latitud y longitud válidas.'); return; }
+  $('pvgis-state').textContent = 'Consultando PVGIS…';
+  try {
+    const r = await fetch(u); if (!r.ok) throw new Error('PVGIS respondió ' + r.status);
+    setSolarFile(parsePVGIS(await r.json()),'PVGIS ' + $('lat').value + ', ' + $('lon').value);
+  } catch (e){
+    $('pvgis-state').textContent = 'Este navegador no permite consultar PVGIS directamente (en la app Android sí). Toca «Descargar el JSON de PVGIS» e impórtalo abajo.';
+  }
+});
+$('pvgis-file').addEventListener('change',async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { if (f.size > 2e6) throw new Error('El archivo supera 2 MB.'); setSolarFile(parsePVGIS(JSON.parse(await f.text())),f.name); }
+  catch (err){ $('pvgis-state').textContent = err instanceof SyntaxError ? 'El archivo no contiene JSON válido.' : err.message; }
+  e.target.value = '';
+});
+$('pdf-btn').addEventListener('click',async () => {
+  if (!R.panels){ toast('Completa la pestaña Paneles antes del informe.'); return; }
+  try { const msg = await deliver(makePDF(),'informe-solar-' + slug($('project-name').value) + '.pdf','application/pdf'); if (msg) $('share-state').textContent = msg; }
+  catch (e){ $('share-state').textContent = e?.code === 'declined' ? 'Descarga cancelada.' : 'No se pudo guardar el PDF aquí. Ábrelo desde el navegador o la app.'; }
+});
+$('copy-btn').addEventListener('click',async () => {
+  try { await navigator.clipboard.writeText(summary()); toast('Resumen copiado.'); } catch { $('summary-preview').closest('details').open = true; toast('Selecciona el texto de la vista previa para copiarlo.'); }
+});
+$('save-btn').addEventListener('click',saveProject);
+$('quick-save').addEventListener('click',saveProject);
+$('new-btn').addEventListener('click',async () => {
+  if (!await confirmBox('¿Empezar un proyecto nuevo?','Los datos actuales se reemplazan por los de ejemplo. Guarda antes si quieres conservarlos.','Empezar')) return;
+  currentId = null; document.querySelectorAll('[data-k]').forEach(el => { if (el.type === 'checkbox') el.checked = false; else el.value = el.defaultValue ?? ''; });
+  document.querySelectorAll('select[data-k]').forEach(s => s.selectedIndex = 0);
+  $('municipality').value = 'Quibdó'; restore({...snapshot(),equipment:[],solarFile:null,coverage:100}); autosave(); renderProjects(); location.hash = 'paneles';
+});
+$('export-btn').addEventListener('click',async () => {
+  const list = projects(); if (!list.length){ toast('No hay proyectos para exportar.'); return; }
+  try { await deliver(new TextEncoder().encode(JSON.stringify({app:'calculadora-solar',version:1,projects:list},null,1)),'proyectos-solares.json','application/json'); }
+  catch { toast('No se pudo exportar aquí.'); }
+});
+$('import-file').addEventListener('change',async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text()); if (!Array.isArray(d?.projects)) throw new Error();
+    const list = projects(); let n = 0;
+    d.projects.forEach(p => { if (p?.id && p?.data){ const i = list.findIndex(x => x.id === p.id); if (i >= 0) list[i] = p; else list.push(p); n++; } });
+    store.set('solar.projects.v1',list); renderProjects(); toast(n + ' proyecto(s) importado(s).');
+  } catch { toast('El archivo no es una copia de proyectos válida.'); }
+  e.target.value = '';
+});
+
+/* ---------- navegación por pestañas ---------- */
+const VIEWS = ['paneles','baterias','costos','informe'];
+function route(){
+  const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'paneles';
+  VIEWS.forEach(x => { $('view-' + x).hidden = x !== v; });
+  document.querySelectorAll('.tabs a').forEach(a => a.dataset.view === v ? a.setAttribute('aria-current','page') : a.removeAttribute('aria-current'));
+  if (v === 'costos') requestAnimationFrame(drawCash);
+  if (v === 'informe') { refreshShare(); renderProjects(); }
+  window.scrollTo({top:0});
+}
+addEventListener('hashchange',route);
+document.addEventListener('click',e => { const j = e.target.closest('[data-jump]'); if (j){ e.preventDefault(); $(j.dataset.jump).scrollIntoView({behavior:'smooth',block:'start'}); } });
+
+/* ---------- instalación (PWA) ---------- */
+let installEvt = null;
+addEventListener('beforeinstallprompt',e => { e.preventDefault(); installEvt = e; $('install-btn').hidden = false; });
+$('install-btn').addEventListener('click',async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; $('install-btn').hidden = true; });
+if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+if (window.claude?.use){ window.claude.use('downloads').then(d => { claudeDownloads = d; }).catch(() => {}); }
+
+/* ---------- inicio ---------- */
+const draft = store.get('solar.draft.v1',null);
+if (draft?.data){ currentId = draft.id || null; restore(draft.data); }
+else restore({fields:{},equipment:defaultEquipment(),coverage:100});
+updateLabel();
+route();
+}
+</script>
+</body>
+</html>
