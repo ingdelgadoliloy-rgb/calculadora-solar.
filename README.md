@@ -86,3 +86,18 @@ Al publicar cambios en la web, sube el número de `CACHE` en `www/sw.js` para qu
 
 ## Fuentes
 IDEAM (radiación global por estación, anexo 7) · UTCH y PERS Chocó (serie de Quibdó) · PVGIS (datos y metodología) · UPME (balance de energía útil residencial).
+
+## Desplegar en una VPS (Hostinger)
+
+La app no tiene backend: basta Nginx sirviendo `www/` con HTTPS. En hPanel → VPS → **Terminal** (como root):
+
+```bash
+curl -fsSL -H "Authorization: Bearer TU_TOKEN" -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/ingdelgadoliloy-rgb/calculadora-solar./contents/deploy/instalar-hostinger.sh" -o instalar.sh
+DOMINIO=solar.tudominio.com TOKEN=TU_TOKEN bash instalar.sh
+```
+
+- Antes, crea en el DNS un registro **A** del dominio hacia la IP de la VPS.
+- `TOKEN`: solo si el repositorio es privado. Crea un *fine-grained token* en GitHub (*Settings → Developer settings → Personal access tokens*) con acceso **solo a este repositorio** y permiso **Contents: Read-only**. Si el repositorio es público, quita las partes del token.
+- Para actualizar la web después de un cambio, vuelve a ejecutar la última línea.
+- Si el puerto 80 ya lo usa otro programa, el script se detiene sin cambiar nada.
