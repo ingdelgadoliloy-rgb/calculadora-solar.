@@ -87,7 +87,22 @@ Al publicar cambios en la web, sube el número de `CACHE` en `www/sw.js` para qu
 ## Fuentes
 IDEAM (radiación global por estación, anexo 7) · UTCH y PERS Chocó (serie de Quibdó) · PVGIS (datos y metodología) · UPME (balance de energía útil residencial).
 
-## Desplegar en una VPS (Hostinger)
+## Desplegar en la VPS con Traefik (fotovcal.xcol.tech)
+
+La VPS ya tiene Traefik con Docker en los puertos 80/443, así que la app corre como un contenedor `nginx:alpine` con etiquetas de Traefik, igual que las demás apps:
+
+```bash
+git clone --depth 1 https://github.com/ingdelgadoliloy-rgb/calculadora-solar. /opt/calculadora-solar
+cd /opt/calculadora-solar/deploy && docker compose up -d
+```
+
+Para actualizar después de un cambio:
+
+```bash
+cd /opt/calculadora-solar && git pull && docker compose -f deploy/docker-compose.yml restart
+```
+
+## Desplegar en una VPS sin Traefik
 
 La app no tiene backend: basta Nginx sirviendo `www/` con HTTPS. En hPanel → VPS → **Terminal** (como root):
 
